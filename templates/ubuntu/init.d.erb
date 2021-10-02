@@ -14,7 +14,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="runit-managed <%= @name %>"
 NAME=<%= @name %>
 RUNIT=<%= @sv_bin %>
-RUNIT_ARGS="<%= @sv_args %>"
+RUNIT_ARGS="<%= @sv_args_str %>"
 SCRIPTNAME=<%= @init_dir %>$NAME
 
 # Exit if runit is not installed

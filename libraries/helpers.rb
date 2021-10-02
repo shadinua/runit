@@ -65,18 +65,18 @@ module RunitCookbook
     def runit_send_signal(signal, friendly_name = nil)
       friendly_name ||= signal
       converge_by("send #{friendly_name} to #{new_resource}") do
-        safe_sv_shellout!("#{sv_args}#{signal} #{service_dir_name}")
+        safe_sv_shellout!([*sv_args, 'signal', service_dir_name])
         Chef::Log.info("#{new_resource} sent #{friendly_name}")
       end
     end
 
     def running?
-      cmd = safe_sv_shellout("#{sv_args}status #{service_dir_name}", returns: [0, 100])
+      cmd = safe_sv_shellout([*sv_args, 'status', service_dir_name], returns: [0, 100])
       !cmd.error? && cmd.stdout =~ /^run:/
     end
 
     def log_running?
-      cmd = safe_sv_shellout("#{sv_args}status #{::File.join(service_dir_name, 'log')}", returns: [0, 100])
+      cmd = safe_sv_shellout([*sv_args, 'status', ::File.join(service_dir_name, 'log')], returns: [0, 100])
       !cmd.error? && cmd.stdout =~ /^run:/
     end
 
@@ -93,9 +93,9 @@ module RunitCookbook
     end
 
     def sv_args
-      sv_args = ''
-      sv_args += "-w #{new_resource.sv_timeout} " unless new_resource.sv_timeout.nil?
-      sv_args += '-v ' if new_resource.sv_verbose
+      sv_args = []
+      sv_args += ['-w', new_resource.sv_timeout] unless new_resource.sv_timeout.nil?
+      sv_args << '-v ' if new_resource.sv_verbose
       sv_args
     end
 
@@ -118,10 +118,10 @@ module RunitCookbook
       true
     end
 
-    def safe_sv_shellout(command, options = {})
+    def safe_sv_shellout(command_args, options = {})
       begin
-        Chef::Log.debug("Attempting to run runit command: #{new_resource.sv_bin} #{command}")
-        cmd = shell_out("#{new_resource.sv_bin} #{command}", options)
+        Chef::Log.debug("Attempting to run runit command: #{new_resource.sv_bin} #{command_args.join(' ')}")
+        cmd = shell_out([new_resource.sv_bin, *command_args], **options)
       rescue Errno::ENOENT
         if binary_exists?
           raise # Some other cause
@@ -132,13 +132,13 @@ module RunitCookbook
       cmd
     end
 
-    def safe_sv_shellout!(command, options = {})
-      safe_sv_shellout(command, options).tap(&:error!)
+    def safe_sv_shellout!(command_args, options = {})
+      safe_sv_shellout(command_args, options).tap(&:error!)
     end
 
     def disable_service
-      Chef::Log.debug("Attempting to disable runit service with: #{new_resource.sv_bin} #{sv_args}down #{service_dir_name}")
-      shell_out("#{new_resource.sv_bin} #{sv_args}down #{service_dir_name}")
+      Chef::Log.debug("Attempting to disable runit service with: #{new_resource.sv_bin} #{sv_args.join(' ')} down #{service_dir_name}")
+      shell_out([new_resource.sv_bin, *sv_args, 'down', service_dir_name])
       FileUtils.rm(service_dir_name)
 
       # per the documentation, a service should be removed from supervision
@@ -153,28 +153,28 @@ module RunitCookbook
     end
 
     def start_service
-      safe_sv_shellout!("#{sv_args}start #{service_dir_name}")
+      safe_sv_shellout!([*sv_args, 'start', service_dir_name])
     end
 
     def stop_service
-      safe_sv_shellout!("#{sv_args}stop #{service_dir_name}")
+      safe_sv_shellout!([*sv_args, 'stop', service_dir_name])
     end
 
     def restart_service
-      safe_sv_shellout!("#{sv_args}restart #{service_dir_name}")
+      safe_sv_shellout!([*sv_args, 'restart', service_dir_name])
     end
 
     def restart_log_service
-      safe_sv_shellout!("#{sv_args}restart #{::File.join(service_dir_name, 'log')}")
+      safe_sv_shellout!([*sv_args, 'restart', ::File.join(service_dir_name, 'log')])
     end
 
     def reload_service
-      safe_sv_shellout!("#{sv_args}force-reload #{service_dir_name}")
+      safe_sv_shellout!([*sv_args, 'force-reload', service_dir_name])
     end
 
     def reload_log_service
       if log_running?
-        safe_sv_shellout!("#{sv_args}force-reload #{::File.join(service_dir_name, 'log')}")
+        safe_sv_shellout!([*sv_args, 'force-reload', ::File.join(service_dir_name, 'log')])
       else
         Chef::Log.debug('Logging not running so doing nothing')
       end
