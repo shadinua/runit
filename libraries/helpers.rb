@@ -65,7 +65,7 @@ module RunitCookbook
     def runit_send_signal(signal, friendly_name = nil)
       friendly_name ||= signal
       converge_by("send #{friendly_name} to #{new_resource}") do
-        safe_sv_shellout!([*sv_args, 'signal', service_dir_name])
+        safe_sv_shellout!([*sv_args, signal, service_dir_name])
         Chef::Log.info("#{new_resource} sent #{friendly_name}")
       end
     end
