@@ -33,10 +33,11 @@ when 'rhel', 'amazon'
 
   package 'runit'
 when 'debian'
-  # debian 9+ ships with runit-systemd which includes only what you need for process supervision and not
-  # what is necessary for running runit as pid 1, which we don't care about.
+  # debian 9 & 10 ship with runit-systemd which includes only what you need for
+  # process supervision and not what is necessary for running runit as pid 1,
+  # which we don't care about.
   pv = node['platform_version']
-  pkg_name = if (platform?('debian') && pv.to_i >= 9) || \
+  pkg_name = if (platform?('debian') && pv.to_i >= 9 && pv.to_i < 11) || \
                 (platform?('ubuntu') && Gem::Version.new(pv) >= Gem::Version.new('17.10'))
                'runit-systemd'
              else
